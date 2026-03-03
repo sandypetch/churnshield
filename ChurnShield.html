@@ -1,0 +1,615 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ChurnShield – Tata Nano Customer Retention Intelligence System</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<style>
+  :root {
+    --primary: #0f4c81;
+    --accent: #e63946;
+    --accent2: #f4a261;
+    --green: #2a9d8f;
+    --bg: #f0f4f8;
+    --card: #ffffff;
+    --text: #1a1a2e;
+    --muted: #6c757d;
+    --border: #dee2e6;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { font-family: 'Segoe UI', Arial, sans-serif; background: var(--bg); color: var(--text); }
+  header {
+    background: linear-gradient(135deg, #0f4c81 0%, #1a6fba 50%, #0d3a6b 100%);
+    color: white; padding: 24px 32px;
+    display: flex; align-items: center; justify-content: space-between;
+    box-shadow: 0 4px 20px rgba(15,76,129,0.3);
+  }
+  header .logo { display: flex; align-items: center; gap: 16px; }
+  header .logo .icon { width: 52px; height: 52px; background: white; border-radius: 12px; display: flex; align-items: center; justify-content: center; font-size: 26px; }
+  header h1 { font-size: 22px; font-weight: 700; letter-spacing: 0.5px; }
+  header p { font-size: 13px; opacity: 0.8; margin-top: 2px; }
+  .header-right { text-align: right; font-size: 12px; opacity: 0.8; }
+  .header-right strong { font-size: 14px; display: block; }
+  .header-badge { display: inline-block; margin-top: 6px; padding: 3px 10px; background: rgba(255,255,255,0.18); border-radius: 20px; font-size: 11px; font-weight: 600; }
+  nav { background: white; padding: 0 32px; border-bottom: 1px solid var(--border); display: flex; gap: 0; box-shadow: 0 2px 8px rgba(0,0,0,0.06); flex-wrap: wrap; }
+  nav button { padding: 14px 22px; border: none; background: none; font-size: 13px; font-weight: 600; color: var(--muted); cursor: pointer; border-bottom: 3px solid transparent; transition: all 0.2s; }
+  nav button.active { color: var(--primary); border-bottom-color: var(--primary); }
+  nav button:hover:not(.active) { color: var(--text); background: #f8f9fa; }
+  nav .rec-tab.active { color: #2a9d8f; border-bottom-color: #2a9d8f; }
+  main { padding: 28px 32px; max-width: 1400px; margin: 0 auto; }
+  .page { display: none; }
+  .page.active { display: block; }
+  .kpi-row { display: grid; grid-template-columns: repeat(4, 1fr); gap: 20px; margin-bottom: 28px; }
+  .kpi { background: var(--card); border-radius: 14px; padding: 22px 24px; box-shadow: 0 2px 12px rgba(0,0,0,0.07); border-left: 5px solid var(--primary); display: flex; align-items: center; gap: 16px; }
+  .kpi.red { border-left-color: var(--accent); }
+  .kpi.orange { border-left-color: var(--accent2); }
+  .kpi.green { border-left-color: var(--green); }
+  .kpi-icon { font-size: 32px; }
+  .kpi-val { font-size: 28px; font-weight: 800; color: var(--text); }
+  .kpi-label { font-size: 12px; color: var(--muted); font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; }
+  .kpi-sub { font-size: 11px; color: var(--muted); margin-top: 2px; }
+  .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 22px; margin-bottom: 22px; }
+  .grid-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 22px; margin-bottom: 22px; }
+  .grid-21 { display: grid; grid-template-columns: 2fr 1fr; gap: 22px; margin-bottom: 22px; }
+  .card { background: var(--card); border-radius: 14px; padding: 22px 24px; box-shadow: 0 2px 12px rgba(0,0,0,0.07); }
+  .card h3 { font-size: 14px; font-weight: 700; color: var(--text); margin-bottom: 4px; letter-spacing: 0.3px; }
+  .card .subtitle { font-size: 12px; color: var(--muted); margin-bottom: 16px; }
+  .chart-wrap { position: relative; height: 240px; }
+  .chart-wrap.tall { height: 290px; }
+  .graph-interp { margin-top: 14px; padding: 10px 14px; background: #f0f7ff; border-left: 4px solid var(--primary); border-radius: 0 8px 8px 0; font-size: 12px; color: #2d3a4a; line-height: 1.6; }
+  .graph-interp strong { color: var(--primary); }
+  .insight-row { display: grid; grid-template-columns: repeat(3,1fr); gap: 16px; margin-bottom: 22px; }
+  .insight { background: linear-gradient(135deg, #0f4c81 0%, #1a6fba 100%); color: white; border-radius: 12px; padding: 18px 20px; }
+  .insight.red { background: linear-gradient(135deg, #e63946, #c1121f); }
+  .insight.green { background: linear-gradient(135deg, #2a9d8f, #1a7a6e); }
+  .insight.orange { background: linear-gradient(135deg, #f4a261, #e76f51); }
+  .insight h4 { font-size: 13px; font-weight: 700; margin-bottom: 6px; opacity: 0.9; }
+  .insight p { font-size: 12px; line-height: 1.5; opacity: 0.85; }
+  table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  th { background: #f8f9fa; padding: 10px 14px; text-align: left; font-weight: 700; font-size: 12px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.4px; border-bottom: 2px solid var(--border); }
+  td { padding: 10px 14px; border-bottom: 1px solid #f0f0f0; }
+  tr:last-child td { border-bottom: none; }
+  tr:hover td { background: #f8fbff; }
+  .badge { display: inline-block; padding: 2px 10px; border-radius: 20px; font-size: 11px; font-weight: 700; }
+  .badge.high { background: #fde8e8; color: #c0392b; }
+  .badge.medium { background: #fff3cd; color: #856404; }
+  .badge.low { background: #d4edda; color: #155724; }
+  .bar-wrap { background: #e9ecef; border-radius: 6px; height: 8px; margin-top: 4px; }
+  .bar-fill { height: 8px; border-radius: 6px; background: var(--primary); }
+  .bar-fill.red { background: var(--accent); }
+  .section-title { font-size: 18px; font-weight: 800; color: var(--text); margin-bottom: 20px; padding-bottom: 10px; border-bottom: 2px solid var(--border); display: flex; align-items: center; gap: 8px; }
+  .data-notice { background: linear-gradient(135deg, #1a7a6e, #2a9d8f); color: white; border-radius: 10px; padding: 12px 18px; font-size: 12px; display: flex; align-items: center; gap: 10px; margin-bottom: 22px; }
+  .data-notice strong { font-size: 13px; display: block; margin-bottom: 2px; }
+  .rec-layout { display: grid; grid-template-columns: 420px 1fr; gap: 0; min-height: 80vh; }
+  .input-panel { background: white; padding: 28px; border-right: 1px solid var(--border); overflow-y: auto; border-radius: 14px 0 0 14px; box-shadow: 0 2px 12px rgba(0,0,0,0.07); }
+  .input-panel h2 { font-size: 15px; font-weight: 800; margin-bottom: 4px; color: var(--primary); }
+  .input-panel .sub { font-size: 12px; color: var(--muted); margin-bottom: 24px; }
+  .form-group { margin-bottom: 16px; }
+  .form-group label { display: block; font-size: 12px; font-weight: 700; color: #444; margin-bottom: 6px; text-transform: uppercase; letter-spacing: 0.4px; }
+  .form-group label span { color: var(--accent); }
+  .form-group select, .form-group .txt-in { width: 100%; padding: 10px 14px; border: 1.5px solid var(--border); border-radius: 8px; font-size: 13px; color: var(--text); background: #fafafa; appearance: none; cursor: pointer; transition: border-color 0.2s; font-family: 'Segoe UI', Arial, sans-serif; }
+  .form-group select:focus, .form-group .txt-in:focus { outline: none; border-color: var(--primary); background: white; }
+  .range-row { display: flex; align-items: center; gap: 10px; }
+  .range-row input[type=range] { flex: 1; accent-color: var(--primary); cursor: pointer; }
+  .range-val { min-width: 36px; height: 32px; background: var(--primary); color: white; border-radius: 6px; display: flex; align-items: center; justify-content: center; font-size: 13px; font-weight: 700; }
+  .toggle-row { display: flex; gap: 8px; }
+  .toggle-btn { flex: 1; padding: 10px; border: 1.5px solid var(--border); border-radius: 8px; background: #fafafa; cursor: pointer; font-size: 12px; font-weight: 600; color: var(--muted); transition: all 0.2s; text-align: center; font-family: 'Segoe UI', Arial, sans-serif; }
+  .toggle-btn.active-yes { border-color: var(--accent); background: #fde8e8; color: var(--accent); }
+  .toggle-btn.active-no  { border-color: var(--green); background: #d4f1ee; color: var(--green); }
+  .analyze-btn { width: 100%; padding: 14px; background: linear-gradient(135deg, var(--primary), #1a6fba); color: white; border: none; border-radius: 10px; font-size: 14px; font-weight: 800; cursor: pointer; margin-top: 8px; letter-spacing: 0.5px; transition: all 0.2s; box-shadow: 0 4px 14px rgba(15,76,129,0.35); font-family: 'Segoe UI', Arial, sans-serif; }
+  .analyze-btn:hover { transform: translateY(-1px); box-shadow: 0 6px 20px rgba(15,76,129,0.45); }
+  .analyze-btn:active { transform: translateY(0); }
+  .form-divider { height: 1px; background: var(--border); margin: 18px 0; }
+  .result-panel { padding: 28px 32px; overflow-y: auto; background: var(--bg); border-radius: 0 14px 14px 0; }
+  .placeholder { display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100%; text-align: center; color: var(--muted); padding: 60px 40px; }
+  .placeholder .big-icon { font-size: 72px; margin-bottom: 16px; opacity: 0.4; }
+  .placeholder h3 { font-size: 18px; color: #999; margin-bottom: 8px; }
+  .placeholder p { font-size: 13px; line-height: 1.6; max-width: 300px; }
+  .result-hidden { display: none; }
+  .risk-header { background: linear-gradient(135deg, #0f4c81, #1a6fba); color: white; border-radius: 16px; padding: 24px 28px; margin-bottom: 24px; display: flex; align-items: center; gap: 24px; }
+  .risk-score-circle { width: 90px; height: 90px; border-radius: 50%; border: 4px solid rgba(255,255,255,0.3); display: flex; flex-direction: column; align-items: center; justify-content: center; background: rgba(255,255,255,0.12); flex-shrink: 0; }
+  .risk-score-circle .score { font-size: 28px; font-weight: 900; }
+  .risk-score-circle .label { font-size: 10px; opacity: 0.75; margin-top: 2px; }
+  .risk-info h2 { font-size: 20px; font-weight: 800; margin-bottom: 4px; }
+  .risk-info p { font-size: 13px; opacity: 0.82; line-height: 1.5; }
+  .risk-badge { display: inline-block; padding: 4px 14px; border-radius: 20px; font-size: 11px; font-weight: 800; margin-top: 8px; background: rgba(255,255,255,0.2); }
+  .meter-wrap { margin: 16px 0 0; }
+  .meter-track { height: 12px; border-radius: 6px; background: linear-gradient(90deg, #2a9d8f, #f4a261, #e63946); position: relative; }
+  .meter-needle { position: absolute; top: -4px; width: 4px; height: 20px; background: white; border-radius: 2px; transform: translateX(-50%); box-shadow: 0 2px 6px rgba(0,0,0,0.3); transition: left 0.8s cubic-bezier(0.34, 1.56, 0.64, 1); }
+  .meter-labels { display: flex; justify-content: space-between; font-size: 10px; opacity: 0.7; margin-top: 4px; }
+  .r-section { margin-bottom: 22px; }
+  .r-section-head { display: flex; align-items: center; gap: 8px; font-size: 14px; font-weight: 800; color: var(--text); margin-bottom: 14px; padding-bottom: 8px; border-bottom: 2px solid var(--border); }
+  .factors-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; }
+  .factor-card { padding: 14px 16px; border-radius: 12px; border-left: 4px solid; }
+  .factor-card.critical { border-color: var(--accent); background: #fef2f2; }
+  .factor-card.warning  { border-color: var(--accent2); background: #fff7ed; }
+  .factor-card.good     { border-color: var(--green); background: #f0fdf9; }
+  .factor-card .factor-icon { font-size: 18px; margin-bottom: 6px; }
+  .factor-card .factor-label { font-size: 11px; color: var(--muted); font-weight: 600; text-transform: uppercase; }
+  .factor-card .factor-val { font-size: 14px; font-weight: 800; margin-top: 2px; }
+  .rec-card { border-radius: 12px; padding: 18px 20px; margin-bottom: 12px; border: 1.5px solid; display: flex; gap: 16px; align-items: flex-start; transition: transform 0.15s; }
+  .rec-card:hover { transform: translateX(3px); }
+  .rec-card.priority-1 { border-color: #e63946; background: #fff8f8; }
+  .rec-card.priority-2 { border-color: #f4a261; background: #fffaf5; }
+  .rec-card.priority-3 { border-color: #0f4c81; background: #f5f8ff; }
+  .rec-card.priority-4 { border-color: #2a9d8f; background: #f5fdf8; }
+  .priority-badge { min-width: 34px; height: 34px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 13px; font-weight: 900; color: white; flex-shrink: 0; }
+  .priority-badge.p1 { background: var(--accent); }
+  .priority-badge.p2 { background: var(--accent2); }
+  .priority-badge.p3 { background: var(--primary); }
+  .priority-badge.p4 { background: var(--green); }
+  .rec-content h4 { font-size: 14px; font-weight: 800; margin-bottom: 4px; }
+  .rec-content p { font-size: 12px; color: #555; line-height: 1.6; }
+  .rec-tag { display: inline-block; margin-top: 8px; padding: 3px 10px; border-radius: 20px; font-size: 11px; font-weight: 700; background: rgba(0,0,0,0.06); color: #555; }
+  .outcome-row { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; }
+  .outcome-card { text-align: center; padding: 18px 14px; border-radius: 12px; background: #f8f9fa; }
+  .outcome-card .o-icon { font-size: 28px; margin-bottom: 8px; }
+  .outcome-card .o-val { font-size: 22px; font-weight: 900; }
+  .outcome-card .o-label { font-size: 11px; color: var(--muted); margin-top: 2px; }
+  .script-box { background: #1e1e2e; color: #a6e3a1; border-radius: 12px; padding: 20px 22px; font-family: 'Courier New', monospace; font-size: 13px; line-height: 1.7; white-space: pre-wrap; }
+  .script-label { font-size: 12px; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 10px; }
+  @media (max-width: 1024px) {
+    .kpi-row { grid-template-columns: repeat(2,1fr); }
+    .grid-2,.grid-3,.grid-21 { grid-template-columns: 1fr; }
+    .insight-row { grid-template-columns: 1fr; }
+    .rec-layout { grid-template-columns: 1fr; }
+    .factors-grid { grid-template-columns: repeat(2,1fr); }
+    .outcome-row { grid-template-columns: repeat(2,1fr); }
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="logo">
+    <div class="icon">🛡️</div>
+    <div>
+      <h1>ChurnShield — Tata Nano Customer Retention Intelligence System</h1>
+      <p>Dashboard · Churn Analysis · Customer Segments · Insights · Recommender · Capstone Project 2026</p>
+    </div>
+  </div>
+  <div class="header-right">
+    <strong>Dataset: Nano_Churn_5000</strong>
+    <span>10 Cities · 3 Customer Types · 5,000 Records</span>
+    <span class="header-badge">🔒 Data Hardcoded — Tamper-Proof</span>
+  </div>
+</header>
+
+<nav>
+  <button class="active" onclick="showPage('overview', this)">📊 Overview</button>
+  <button onclick="showPage('churn', this)">📉 Churn Analysis</button>
+  <button onclick="showPage('customers', this)">👥 Customer Segments</button>
+  <button onclick="showPage('insights', this)">💡 Insights &amp; Actions</button>
+  <button class="rec-tab" onclick="showPage('recommender', this)">🤖 Churn Recommender</button>
+</nav>
+
+<main>
+
+<!-- PAGE 1: OVERVIEW -->
+<div class="page active" id="overview">
+
+  <div class="data-notice">
+    <span style="font-size:22px">🔒</span>
+    <div>
+      <strong>Tamper-Proof Dataset Notice</strong>
+      All 5,000 customer records are hardcoded directly into this system. Data cannot be modified externally, ensuring full integrity for analysis and academic reporting.
+    </div>
+  </div>
+
+  <div class="kpi-row">
+    <div class="kpi blue"><div class="kpi-icon">👥</div><div><div class="kpi-val">5,000</div><div class="kpi-label">Total Customers</div><div class="kpi-sub">Across 10 Indian cities</div></div></div>
+    <div class="kpi red"><div class="kpi-icon">⚠️</div><div><div class="kpi-val">2,461</div><div class="kpi-label">Churned Customers</div><div class="kpi-sub">49.2% overall churn rate</div></div></div>
+    <div class="kpi orange"><div class="kpi-icon">🔥</div><div><div class="kpi-val">2,949</div><div class="kpi-label">High Risk Customers</div><div class="kpi-sub">59% of total base</div></div></div>
+    <div class="kpi green"><div class="kpi-icon">⭐</div><div><div class="kpi-val">5.96</div><div class="kpi-label">Avg Satisfaction</div><div class="kpi-sub">Scale of 3–9</div></div></div>
+  </div>
+
+  <div class="grid-21">
+    <div class="card">
+      <h3>📍 Churn Rate by City</h3>
+      <div class="subtitle">% of customers who churned per city</div>
+      <div class="chart-wrap tall"><canvas id="cityChurn"></canvas></div>
+      <div class="graph-interp">📌 <strong>Interpretation:</strong> Jaipur, Hyderabad, and Kolkata top the churn chart at over 51%, making them the highest-priority cities for retention campaigns. Delhi and Lucknow are the healthiest markets, with churn below 47%.</div>
+    </div>
+    <div class="card">
+      <h3>🎯 Churn Risk Distribution</h3>
+      <div class="subtitle">Customer risk classification</div>
+      <div class="chart-wrap"><canvas id="riskDist"></canvas></div>
+      <div style="margin-top:16px">
+        <div style="display:flex;justify-content:space-between;font-size:12px;margin-bottom:4px"><span>High Risk</span><span style="color:#e63946;font-weight:700">2,949 (58.9%)</span></div>
+        <div class="bar-wrap"><div class="bar-fill red" style="width:58.9%"></div></div>
+        <div style="display:flex;justify-content:space-between;font-size:12px;margin:8px 0 4px"><span>Medium Risk</span><span style="color:#f4a261;font-weight:700">1,011 (20.2%)</span></div>
+        <div class="bar-wrap"><div class="bar-fill" style="width:20.2%;background:#f4a261"></div></div>
+        <div style="display:flex;justify-content:space-between;font-size:12px;margin:8px 0 4px"><span>Low Risk</span><span style="color:#2a9d8f;font-weight:700">1,040 (20.8%)</span></div>
+        <div class="bar-wrap"><div class="bar-fill" style="width:20.8%;background:#2a9d8f"></div></div>
+      </div>
+      <div class="graph-interp">📌 <strong>Interpretation:</strong> Nearly 6 in 10 customers are High Risk. This means the majority of the base is vulnerable to churn, calling for broad, scalable retention programs rather than just individual interventions.</div>
+    </div>
+  </div>
+
+  <div class="grid-2">
+    <div class="card">
+      <h3>📅 Churn Rate by Ownership Years</h3>
+      <div class="subtitle">How long customers owned Nano before churning</div>
+      <div class="chart-wrap"><canvas id="ownershipChurn"></canvas></div>
+      <div class="graph-interp">📌 <strong>Interpretation:</strong> Churned customers outnumber retained customers in years 1–2, indicating the early ownership period is the highest-risk window. Proactive onboarding and early-stage loyalty programs can significantly reduce first-year churn.</div>
+    </div>
+    <div class="card">
+      <h3>🔧 Retention Actions Deployed</h3>
+      <div class="subtitle">Actions taken to retain at-risk customers</div>
+      <div class="chart-wrap"><canvas id="retentionChart"></canvas></div>
+      <div class="graph-interp">📌 <strong>Interpretation:</strong> Loyalty Bonus (~871) and Rebranding Campaigns (~866) are the most commonly deployed retention strategies. Service-based actions like Free Service (794) and Service Support (770) are used less often but are equally critical for complaint-driven churn.</div>
+    </div>
+  </div>
+</div>
+
+<!-- PAGE 2: CHURN ANALYSIS -->
+<div class="page" id="churn">
+  <div class="section-title">📉 Deep-Dive Churn Analysis</div>
+
+  <div class="grid-2">
+    <div class="card">
+      <h3>😠 Complaint Count vs Churn Rate</h3>
+      <div class="subtitle">Higher complaints = drastically higher churn</div>
+      <div class="chart-wrap tall"><canvas id="complaintChurn"></canvas></div>
+      <div class="graph-interp">📌 <strong>Interpretation:</strong> Churn is very low (~18%) for customers with 0–1 complaints, but spikes sharply to 54% at just 2 complaints. With 6 complaints, churn reaches 69.6%. This shows that even one unresolved complaint can more than triple the churn risk — making fast complaint resolution the top retention priority.</div>
+    </div>
+    <div class="card">
+      <h3>⭐ Satisfaction Score: Churned vs Retained</h3>
+      <div class="subtitle">Churned customers score significantly lower</div>
+      <div class="chart-wrap tall"><canvas id="satChurn"></canvas></div>
+      <div class="graph-interp">📌 <strong>Interpretation:</strong> Churned customers average 5.59 satisfaction while retained customers average 6.31. A score of 6 appears to be the retention threshold — customers below it are consistently more likely to leave. Improving satisfaction by even 1 point through better service can significantly reduce churn probability.</div>
+    </div>
+  </div>
+
+  <div class="grid-3">
+    <div class="card">
+      <h3>💳 EMI Delay vs Churn</h3>
+      <div class="subtitle">Impact of payment delays</div>
+      <div class="chart-wrap"><canvas id="emiChurn"></canvas></div>
+      <div class="graph-interp">📌 <strong>Interpretation:</strong> EMI-delayed customers churn at a slightly higher rate (49.5%) than on-time payers (49%). While the gap is small, payment delays signal financial stress — making these customers worth proactive outreach before the stress escalates.</div>
+    </div>
+    <div class="card">
+      <h3>👤 Age Group vs Churn Rate</h3>
+      <div class="subtitle">Younger customers churn slightly more</div>
+      <div class="chart-wrap"><canvas id="ageChurn"></canvas></div>
+      <div class="graph-interp">📌 <strong>Interpretation:</strong> The 21–30 age group has the highest churn at 51.7%, while 51–55 year-olds churn the least at 45.4%. Younger customers likely have higher expectations and more upgrade aspirations, making digital engagement and modern loyalty incentives essential for this demographic.</div>
+    </div>
+    <div class="card">
+      <h3>🎯 Risk Level vs Actual Churn</h3>
+      <div class="subtitle">High risk = 66% actual churn rate</div>
+      <div class="chart-wrap"><canvas id="riskChurn"></canvas></div>
+      <div class="graph-interp">📌 <strong>Interpretation:</strong> The risk model is highly accurate — High Risk customers churn at 66.4% in reality. Low Risk customers show 0% churn, confirming the model cleanly separates safe and at-risk customers. This validates using the risk score as a targeting tool for retention campaigns.</div>
+    </div>
+  </div>
+
+  <div class="card">
+    <h3>📋 City-wise Churn Summary Table</h3>
+    <div class="subtitle">Complete breakdown of churn by city</div>
+    <br>
+    <table>
+      <thead><tr><th>City</th><th>Total</th><th>Churned</th><th>Retained</th><th>Churn Rate</th><th>Risk</th><th>Visual</th></tr></thead>
+      <tbody>
+        <tr><td><strong>Jaipur</strong></td><td>490</td><td>259</td><td>231</td><td><strong style="color:#e63946">52.9%</strong></td><td><span class="badge high">High</span></td><td><div class="bar-wrap"><div class="bar-fill red" style="width:52.9%"></div></div></td></tr>
+        <tr><td><strong>Hyderabad</strong></td><td>560</td><td>289</td><td>271</td><td><strong style="color:#e63946">51.6%</strong></td><td><span class="badge high">High</span></td><td><div class="bar-wrap"><div class="bar-fill red" style="width:51.6%"></div></div></td></tr>
+        <tr><td><strong>Kolkata</strong></td><td>484</td><td>249</td><td>235</td><td><strong style="color:#e63946">51.4%</strong></td><td><span class="badge high">High</span></td><td><div class="bar-wrap"><div class="bar-fill red" style="width:51.4%"></div></div></td></tr>
+        <tr><td><strong>Ahmedabad</strong></td><td>533</td><td>263</td><td>270</td><td><strong style="color:#f4a261">49.3%</strong></td><td><span class="badge medium">Medium</span></td><td><div class="bar-wrap"><div class="bar-fill" style="width:49.3%;background:#f4a261"></div></div></td></tr>
+        <tr><td><strong>Bangalore</strong></td><td>460</td><td>226</td><td>234</td><td><strong style="color:#f4a261">49.1%</strong></td><td><span class="badge medium">Medium</span></td><td><div class="bar-wrap"><div class="bar-fill" style="width:49.1%;background:#f4a261"></div></div></td></tr>
+        <tr><td><strong>Pune</strong></td><td>496</td><td>242</td><td>254</td><td><strong style="color:#f4a261">48.8%</strong></td><td><span class="badge medium">Medium</span></td><td><div class="bar-wrap"><div class="bar-fill" style="width:48.8%;background:#f4a261"></div></div></td></tr>
+        <tr><td><strong>Mumbai</strong></td><td>480</td><td>232</td><td>248</td><td><strong style="color:#f4a261">48.3%</strong></td><td><span class="badge medium">Medium</span></td><td><div class="bar-wrap"><div class="bar-fill" style="width:48.3%;background:#f4a261"></div></div></td></tr>
+        <tr><td><strong>Chennai</strong></td><td>537</td><td>254</td><td>283</td><td><strong style="color:#f4a261">47.3%</strong></td><td><span class="badge medium">Medium</span></td><td><div class="bar-wrap"><div class="bar-fill" style="width:47.3%;background:#f4a261"></div></div></td></tr>
+        <tr><td><strong>Delhi</strong></td><td>484</td><td>226</td><td>258</td><td><strong style="color:#2a9d8f">46.7%</strong></td><td><span class="badge low">Low</span></td><td><div class="bar-wrap"><div class="bar-fill" style="width:46.7%;background:#2a9d8f"></div></div></td></tr>
+        <tr><td><strong>Lucknow</strong></td><td>476</td><td>221</td><td>255</td><td><strong style="color:#2a9d8f">46.4%</strong></td><td><span class="badge low">Low</span></td><td><div class="bar-wrap"><div class="bar-fill" style="width:46.4%;background:#2a9d8f"></div></div></td></tr>
+      </tbody>
+    </table>
+    <div class="graph-interp" style="margin-top:14px">📌 <strong>Interpretation:</strong> All 10 cities show churn between 46–53%, indicating a pan-India retention problem. The 6.5-point gap between Jaipur and Lucknow shows that city-specific strategies can still make a measurable difference at the local level.</div>
+  </div>
+</div>
+
+<!-- PAGE 3: CUSTOMER SEGMENTS -->
+<div class="page" id="customers">
+  <div class="section-title">👥 Customer Segment Analysis</div>
+
+  <div class="grid-2">
+    <div class="card">
+      <h3>🏷️ Churn by Customer Type</h3>
+      <div class="subtitle">Price-sensitive vs high-complaint vs brand-concern</div>
+      <div class="chart-wrap"><canvas id="custTypeChurn"></canvas></div>
+      <div class="graph-interp">📌 <strong>Interpretation:</strong> All three customer types churn at nearly the same rate (48–50%), meaning customer type alone does not determine who leaves. However, High-Complaint customers lead at 50%, reinforcing that complaint handling is the most universal retention lever across all segments.</div>
+    </div>
+    <div class="card">
+      <h3>👁️ Brand Perception vs Churn</h3>
+      <div class="subtitle">Surprisingly, high perception still shows ~50% churn</div>
+      <div class="chart-wrap"><canvas id="brandChurn"></canvas></div>
+      <div class="graph-interp">📌 <strong>Interpretation:</strong> Even customers with a positive brand perception churn at nearly 50% — almost identical to those with low brand perception. This reveals that liking the brand is not enough to retain customers; price, service quality, and financial factors are equally important retention drivers.</div>
+    </div>
+  </div>
+
+  <div class="grid-2">
+    <div class="card">
+      <h3>📊 Customer Type Distribution</h3>
+      <div class="subtitle">Breakdown of 5,000 customers by type</div>
+      <div class="chart-wrap"><canvas id="custTypeDist"></canvas></div>
+      <div class="graph-interp">📌 <strong>Interpretation:</strong> The customer base is near-perfectly split across High-Complaint (1,697), Price-Sensitive (1,696), and Brand-Concern (1,607). This even distribution means no single segment can be ignored — retention strategies must be designed to address all three types simultaneously.</div>
+    </div>
+    <div class="card">
+      <h3>🔄 Exchange Inquiry &amp; EMI Status</h3>
+      <div class="subtitle">Customers exploring exchange options</div>
+      <div style="margin-top:20px">
+        <div style="display:flex;align-items:center;gap:16px;padding:16px;background:#f8f9fa;border-radius:10px;margin-bottom:12px">
+          <div style="font-size:36px">🔁</div>
+          <div>
+            <div style="font-size:22px;font-weight:800;color:#e63946">~50%</div>
+            <div style="font-size:13px;color:#666">of customers have made an exchange inquiry</div>
+          </div>
+        </div>
+        <div style="font-size:13px;color:#444;line-height:1.7;padding:12px;background:#fff3cd;border-radius:8px;border-left:4px solid #f4a261">
+          <strong>⚠️ Key Finding:</strong> A high exchange inquiry rate signals that many Nano customers are actively considering switching to another vehicle. This is a strong early warning churn signal that should trigger proactive retention campaigns.
+        </div>
+        <div style="margin-top:16px;display:grid;grid-template-columns:1fr 1fr;gap:12px">
+          <div style="text-align:center;padding:14px;background:#fde8e8;border-radius:10px"><div style="font-size:20px;font-weight:800;color:#e63946">2,503</div><div style="font-size:11px;color:#666;margin-top:2px">EMI Delayed</div></div>
+          <div style="text-align:center;padding:14px;background:#d4edda;border-radius:10px"><div style="font-size:20px;font-weight:800;color:#2a9d8f">2,497</div><div style="font-size:11px;color:#666;margin-top:2px">On-Time EMI</div></div>
+        </div>
+        <div class="graph-interp" style="margin-top:14px">📌 <strong>Interpretation:</strong> With 2,503 customers on delayed EMI and ~50% having made exchange inquiries, financial stress and switching intent are co-occurring risk signals. Customers showing both behaviours simultaneously represent the highest-urgency retention cases.</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <h3>📐 Satisfaction Score Distribution – Churned vs Retained Customers</h3>
+    <div class="subtitle">Distribution of satisfaction scores across both groups</div>
+    <br>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px">
+      <div>
+        <div style="font-weight:700;color:#e63946;margin-bottom:12px">❌ Churned Customers — Avg: 5.59</div>
+        <div style="display:flex;flex-direction:column;gap:8px">
+          <div style="display:flex;align-items:center;gap:10px;font-size:13px"><span style="width:24px;font-weight:700">3</span><div class="bar-wrap" style="flex:1"><div class="bar-fill red" style="width:35%"></div></div><span>High</span></div>
+          <div style="display:flex;align-items:center;gap:10px;font-size:13px"><span style="width:24px;font-weight:700">4</span><div class="bar-wrap" style="flex:1"><div class="bar-fill red" style="width:40%"></div></div><span>High</span></div>
+          <div style="display:flex;align-items:center;gap:10px;font-size:13px"><span style="width:24px;font-weight:700">5</span><div class="bar-wrap" style="flex:1"><div class="bar-fill red" style="width:30%"></div></div><span>Moderate</span></div>
+          <div style="display:flex;align-items:center;gap:10px;font-size:13px"><span style="width:24px;font-weight:700">6</span><div class="bar-wrap" style="flex:1"><div class="bar-fill red" style="width:25%"></div></div><span>Moderate</span></div>
+          <div style="display:flex;align-items:center;gap:10px;font-size:13px"><span style="width:24px;font-weight:700">7+</span><div class="bar-wrap" style="flex:1"><div class="bar-fill red" style="width:10%"></div></div><span>Low</span></div>
+        </div>
+      </div>
+      <div>
+        <div style="font-weight:700;color:#2a9d8f;margin-bottom:12px">✅ Retained Customers — Avg: 6.31</div>
+        <div style="display:flex;flex-direction:column;gap:8px">
+          <div style="display:flex;align-items:center;gap:10px;font-size:13px"><span style="width:24px;font-weight:700">3</span><div class="bar-wrap" style="flex:1"><div class="bar-fill" style="width:10%;background:#2a9d8f"></div></div><span>Low</span></div>
+          <div style="display:flex;align-items:center;gap:10px;font-size:13px"><span style="width:24px;font-weight:700">4</span><div class="bar-wrap" style="flex:1"><div class="bar-fill" style="width:15%;background:#2a9d8f"></div></div><span>Low</span></div>
+          <div style="display:flex;align-items:center;gap:10px;font-size:13px"><span style="width:24px;font-weight:700">5</span><div class="bar-wrap" style="flex:1"><div class="bar-fill" style="width:25%;background:#2a9d8f"></div></div><span>Moderate</span></div>
+          <div style="display:flex;align-items:center;gap:10px;font-size:13px"><span style="width:24px;font-weight:700">6</span><div class="bar-wrap" style="flex:1"><div class="bar-fill" style="width:45%;background:#2a9d8f"></div></div><span>High</span></div>
+          <div style="display:flex;align-items:center;gap:10px;font-size:13px"><span style="width:24px;font-weight:700">7+</span><div class="bar-wrap" style="flex:1"><div class="bar-fill" style="width:55%;background:#2a9d8f"></div></div><span>Very High</span></div>
+        </div>
+      </div>
+    </div>
+    <div class="graph-interp" style="margin-top:16px">📌 <strong>Interpretation:</strong> Churned customers cluster at satisfaction scores 3–5, while retained customers cluster at 6 and above. A score of 6 is the clear retention boundary. Pushing even one dissatisfied customer from a 5 to a 6 through service improvements could be the difference between losing and keeping them.</div>
+  </div>
+</div>
+
+<!-- PAGE 4: INSIGHTS -->
+<div class="page" id="insights">
+  <div class="section-title">💡 Key Insights &amp; Strategic Actions</div>
+
+  <div class="insight-row">
+    <div class="insight red"><h4>🔴 Critical Finding #1</h4><p>Overall churn rate stands at 49.2% — nearly half of all 5,000 Tata Nano customers have churned. This is a systemic retention crisis requiring immediate multi-level intervention.</p></div>
+    <div class="insight orange"><h4>⚠️ Critical Finding #2</h4><p>Customers with 4+ complaints have a 65–70% churn rate. Complaint resolution is the single most powerful lever to reduce churn across all segments.</p></div>
+    <div class="insight"><h4>🔵 Critical Finding #3</h4><p>High-risk customers churn at 66.4% — and the risk model is highly accurate. These customers should receive priority retention treatment through ChurnShield's recommender.</p></div>
+  </div>
+
+  <div class="grid-2">
+    <div class="card">
+      <h3>🎯 Top Churn Drivers</h3>
+      <div class="subtitle">Ranked by impact on churn rate</div><br>
+      <table>
+        <thead><tr><th>Factor</th><th>Impact Level</th><th>Churn Rate</th></tr></thead>
+        <tbody>
+          <tr><td>6+ Complaints</td><td><span class="badge high">Severe</span></td><td style="font-weight:700;color:#e63946">69.6%</td></tr>
+          <tr><td>5 Complaints</td><td><span class="badge high">Very High</span></td><td style="font-weight:700;color:#e63946">66.3%</td></tr>
+          <tr><td>High Risk Classification</td><td><span class="badge high">High</span></td><td style="font-weight:700;color:#e63946">66.4%</td></tr>
+          <tr><td>4 Complaints</td><td><span class="badge high">High</span></td><td style="font-weight:700;color:#e63946">65.5%</td></tr>
+          <tr><td>Age 21–30 Group</td><td><span class="badge medium">Medium</span></td><td style="font-weight:700;color:#f4a261">51.7%</td></tr>
+          <tr><td>EMI Delay = Yes</td><td><span class="badge medium">Medium</span></td><td style="font-weight:700;color:#f4a261">49.5%</td></tr>
+          <tr><td>Low Satisfaction Score</td><td><span class="badge medium">Medium</span></td><td style="font-weight:700;color:#f4a261">Higher for score ≤5</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <div class="card">
+      <h3>✅ Recommended Actions</h3>
+      <div class="subtitle">Prioritized by expected ROI on retention</div><br>
+      <div style="display:flex;flex-direction:column;gap:14px">
+        <div style="display:flex;gap:12px;align-items:flex-start"><div style="background:#e63946;color:white;border-radius:50%;width:26px;height:26px;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:800;flex-shrink:0">1</div><div><strong>Complaint Fast-Track Program</strong><br><span style="font-size:12px;color:#666">Resolve all complaints within 24hrs for customers with 3+ complaints. This alone could prevent 65–70% churn in that segment.</span></div></div>
+        <div style="display:flex;gap:12px;align-items:flex-start"><div style="background:#f4a261;color:white;border-radius:50%;width:26px;height:26px;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:800;flex-shrink:0">2</div><div><strong>Jaipur &amp; Hyderabad Priority Campaigns</strong><br><span style="font-size:12px;color:#666">These cities have the highest churn rates (52.9% &amp; 51.6%). Run city-specific discount offers and loyalty programs.</span></div></div>
+        <div style="display:flex;gap:12px;align-items:flex-start"><div style="background:#0f4c81;color:white;border-radius:50%;width:26px;height:26px;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:800;flex-shrink:0">3</div><div><strong>EMI Flexibility for Delayed Payers</strong><br><span style="font-size:12px;color:#666">Introduce EMI restructuring for customers with delays to reduce financial stress and prevent churn triggers.</span></div></div>
+        <div style="display:flex;gap:12px;align-items:flex-start"><div style="background:#2a9d8f;color:white;border-radius:50%;width:26px;height:26px;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:800;flex-shrink:0">4</div><div><strong>Youth Engagement Program (21–30)</strong><br><span style="font-size:12px;color:#666">Highest churn age group. Target with digital campaigns, upgrade paths, and modern feature highlights.</span></div></div>
+        <div style="display:flex;gap:12px;align-items:flex-start"><div style="background:#6c757d;color:white;border-radius:50%;width:26px;height:26px;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:800;flex-shrink:0">5</div><div><strong>Satisfaction Score Monitoring</strong><br><span style="font-size:12px;color:#666">Customers scoring ≤5 should receive a proactive outreach call within 7 days of service visit.</span></div></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="card" style="background:linear-gradient(135deg,#0f4c81,#1a6fba);color:white">
+    <h3 style="color:white;font-size:16px">📊 Predicted Impact of Interventions</h3>
+    <div style="color:rgba(255,255,255,0.7);font-size:12px;margin-bottom:20px">Estimated churn reduction if all recommendations are implemented</div>
+    <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:16px">
+      <div style="text-align:center;background:rgba(255,255,255,0.12);border-radius:12px;padding:16px"><div style="font-size:28px;font-weight:800">-12%</div><div style="font-size:12px;opacity:0.8;margin-top:4px">Complaint Resolution</div></div>
+      <div style="text-align:center;background:rgba(255,255,255,0.12);border-radius:12px;padding:16px"><div style="font-size:28px;font-weight:800">-8%</div><div style="font-size:12px;opacity:0.8;margin-top:4px">City Campaigns</div></div>
+      <div style="text-align:center;background:rgba(255,255,255,0.12);border-radius:12px;padding:16px"><div style="font-size:28px;font-weight:800">-5%</div><div style="font-size:12px;opacity:0.8;margin-top:4px">EMI Flexibility</div></div>
+      <div style="text-align:center;background:rgba(255,255,255,0.12);border-radius:12px;padding:16px"><div style="font-size:28px;font-weight:800">~49→24%</div><div style="font-size:12px;opacity:0.8;margin-top:4px">Target Churn Rate</div></div>
+    </div>
+  </div>
+</div>
+
+<!-- PAGE 5: RECOMMENDER -->
+<div class="page" id="recommender">
+  <div class="section-title">🤖 ChurnShield — Personalized Customer Recommender</div>
+  <div class="rec-layout">
+    <div class="input-panel">
+      <h2>👤 Customer Profile</h2>
+      <p class="sub">Fill in the customer's details to generate a personalized churn prevention strategy.</p>
+      <div class="form-group"><label>Customer ID / Name</label><input type="text" id="custName" class="txt-in" placeholder="e.g. C0042 or Ramesh Kumar"></div>
+      <div class="form-group"><label>Customer Type <span>*</span></label><select id="custType"><option value="">— Select —</option><option value="High-Complaint">High-Complaint Customer</option><option value="Price-Sensitive">Price-Sensitive Customer</option><option value="Brand-Concern">Brand-Concern Customer</option></select></div>
+      <div class="form-group"><label>City <span>*</span></label><select id="city"><option value="">— Select —</option><option value="Jaipur">Jaipur 🔴 (Highest Churn)</option><option value="Hyderabad">Hyderabad 🔴</option><option value="Kolkata">Kolkata 🔴</option><option value="Ahmedabad">Ahmedabad 🟡</option><option value="Bangalore">Bangalore 🟡</option><option value="Pune">Pune 🟡</option><option value="Mumbai">Mumbai 🟡</option><option value="Chennai">Chennai 🟡</option><option value="Delhi">Delhi 🟢</option><option value="Lucknow">Lucknow 🟢</option></select></div>
+      <div class="form-group"><label>Age</label><div class="range-row"><input type="range" id="age" min="21" max="55" value="35" oninput="document.getElementById('ageVal').textContent=this.value"><div class="range-val" id="ageVal">35</div></div></div>
+      <div class="form-group"><label>Ownership Years</label><div class="range-row"><input type="range" id="ownership" min="1" max="6" value="3" oninput="document.getElementById('ownVal').textContent=this.value"><div class="range-val" id="ownVal">3</div></div></div>
+      <div class="form-group"><label>Complaint Count <span>*</span></label><div class="range-row"><input type="range" id="complaints" min="0" max="6" value="2" oninput="document.getElementById('compVal').textContent=this.value"><div class="range-val" id="compVal">2</div></div></div>
+      <div class="form-group"><label>Satisfaction Score (3–9) <span>*</span></label><div class="range-row"><input type="range" id="satisfaction" min="3" max="9" value="6" oninput="document.getElementById('satVal').textContent=this.value"><div class="range-val" id="satVal">6</div></div></div>
+      <div class="form-group"><label>Service Frequency (visits/year)</label><div class="range-row"><input type="range" id="service" min="1" max="3" value="2" oninput="document.getElementById('svcVal').textContent=this.value"><div class="range-val" id="svcVal">2</div></div></div>
+      <div class="form-divider"></div>
+      <div class="form-group"><label>EMI Delay? <span>*</span></label><div class="toggle-row"><button class="toggle-btn" id="emi-yes" onclick="setToggle('emi','yes')">✓ Yes — Delayed</button><button class="toggle-btn" id="emi-no" onclick="setToggle('emi','no')">✓ No — On Time</button></div></div>
+      <div class="form-group"><label>Exchange Inquiry Made? <span>*</span></label><div class="toggle-row"><button class="toggle-btn" id="exch-yes" onclick="setToggle('exch','yes')">✓ Yes</button><button class="toggle-btn" id="exch-no" onclick="setToggle('exch','no')">✓ No</button></div></div>
+      <div class="form-group"><label>Brand Perception <span>*</span></label><select id="brandPerc"><option value="">— Select —</option><option value="High">High — Positive about Tata Nano</option><option value="Medium">Medium — Neutral</option><option value="Low">Low — Negative about brand</option></select></div>
+      <div class="form-group"><label>Churn Risk Classification</label><select id="churnRisk"><option value="">— Select / Auto-detect —</option><option value="High">High Risk</option><option value="Medium">Medium Risk</option><option value="Low">Low Risk</option></select></div>
+      <button class="analyze-btn" onclick="generateRecommendation()">🔍 Generate Recommendation</button>
+    </div>
+
+    <div class="result-panel">
+      <div class="placeholder" id="placeholder">
+        <div class="big-icon">🛡️</div>
+        <h3>ChurnShield Ready</h3>
+        <p>Fill in the customer profile on the left and click <strong>Generate Recommendation</strong> to get a personalized churn prevention strategy.</p>
+        <br><p style="font-size:11px;opacity:0.6">Based on 5,000 hardcoded Tata Nano customer records</p>
+      </div>
+      <div id="results" class="result-hidden">
+        <div class="risk-header" id="riskHeader">
+          <div class="risk-score-circle"><span class="score" id="riskScore">—</span><span class="label">RISK SCORE</span></div>
+          <div class="risk-info" style="flex:1">
+            <h2 id="riskTitle">Analyzing...</h2>
+            <p id="riskDesc">—</p>
+            <div class="meter-wrap"><div class="meter-track"><div class="meter-needle" id="meterNeedle" style="left:50%"></div></div><div class="meter-labels"><span>Low Risk</span><span>Medium</span><span>High Risk</span></div></div>
+            <span class="risk-badge" id="riskBadge">—</span>
+          </div>
+        </div>
+        <div class="r-section"><div class="r-section-head">⚡ Key Risk Factors</div><div class="factors-grid" id="factorsGrid"></div></div>
+        <div class="r-section"><div class="r-section-head">✅ Personalized Recommendations</div><div id="recsContainer"></div></div>
+        <div class="r-section">
+          <div class="r-section-head">📈 Predicted Outcome (if actions taken)</div>
+          <div class="outcome-row">
+            <div class="outcome-card"><div class="o-icon">📉</div><div class="o-val" id="churnReduction" style="color:#2a9d8f">—</div><div class="o-label">Churn Risk Reduction</div></div>
+            <div class="outcome-card"><div class="o-icon">⏱️</div><div class="o-val" id="timeframe" style="color:#0f4c81">—</div><div class="o-label">Implementation Timeline</div></div>
+            <div class="outcome-card"><div class="o-icon">💰</div><div class="o-val" id="savings" style="color:#e63946">—</div><div class="o-label">Est. Retention Value</div></div>
+          </div>
+        </div>
+        <div class="r-section"><div class="r-section-head">📞 Suggested Retention Call Script</div><div class="script-label">Use this when calling the customer</div><div class="script-box" id="callScript"></div></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+</main>
+
+<script>
+function showPage(id, btn) {
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('nav button').forEach(b => b.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+  btn.classList.add('active');
+}
+Chart.defaults.font.family = "'Segoe UI', Arial, sans-serif";
+Chart.defaults.font.size = 12;
+const COLORS = { blue:'#0f4c81', red:'#e63946', orange:'#f4a261', green:'#2a9d8f', purple:'#6a4c93', teal:'#48cae4', navy:'#1a6fba', pink:'#e07a5f' };
+
+new Chart(document.getElementById('cityChurn'), { type:'bar', data:{ labels:['Jaipur','Hyderabad','Kolkata','Ahmedabad','Bangalore','Pune','Mumbai','Chennai','Delhi','Lucknow'], datasets:[{ label:'Churn Rate (%)', data:[52.9,51.6,51.4,49.3,49.1,48.8,48.3,47.3,46.7,46.4], backgroundColor:[COLORS.red,COLORS.red,COLORS.red,COLORS.orange,COLORS.orange,COLORS.orange,COLORS.orange,COLORS.orange,COLORS.green,COLORS.green], borderRadius:6 }] }, options:{ responsive:true, maintainAspectRatio:false, plugins:{legend:{display:false}}, scales:{ y:{min:40,max:56,ticks:{callback:v=>v+'%'},grid:{color:'#f0f0f0'}}, x:{grid:{display:false}} } } });
+new Chart(document.getElementById('riskDist'), { type:'doughnut', data:{ labels:['High Risk','Low Risk','Medium Risk'], datasets:[{data:[2949,1040,1011], backgroundColor:[COLORS.red,COLORS.green,COLORS.orange], borderWidth:0, hoverOffset:8}] }, options:{ responsive:true, maintainAspectRatio:false, cutout:'65%', plugins:{legend:{position:'bottom',labels:{padding:12,usePointStyle:true}}} } });
+new Chart(document.getElementById('ownershipChurn'), { type:'line', data:{ labels:['1 Year','2 Years','3 Years','4 Years','5 Years','6 Years'], datasets:[ { label:'Churned', data:[420,430,415,400,410,386], borderColor:COLORS.red, backgroundColor:'rgba(230,57,70,0.1)', fill:true, tension:0.4, pointRadius:5 }, { label:'Retained', data:[380,400,420,410,390,338], borderColor:COLORS.green, backgroundColor:'rgba(42,157,143,0.1)', fill:true, tension:0.4, pointRadius:5 } ] }, options:{ responsive:true, maintainAspectRatio:false, plugins:{legend:{position:'top'}}, scales:{y:{grid:{color:'#f0f0f0'}},x:{grid:{display:false}}} } });
+new Chart(document.getElementById('retentionChart'), { type:'bar', data:{ labels:['Loyalty Bonus','Rebranding Campaign','Exchange Offer','Discount Offer','Free Service','Service Support'], datasets:[{ data:[871,866,857,842,794,770], backgroundColor:[COLORS.blue,COLORS.navy,COLORS.purple,COLORS.teal,COLORS.green,COLORS.orange], borderRadius:6 }] }, options:{ indexAxis:'y', responsive:true, maintainAspectRatio:false, plugins:{legend:{display:false}}, scales:{x:{grid:{color:'#f0f0f0'}},y:{grid:{display:false}}} } });
+new Chart(document.getElementById('complaintChurn'), { type:'bar', data:{ labels:['0 Complaints','1 Complaint','2 Complaints','3 Complaints','4 Complaints','5 Complaints','6 Complaints'], datasets:[{ label:'Churn Rate (%)', data:[18.2,17.6,53.7,55.4,65.5,66.3,69.6], backgroundColor:['#2a9d8f','#2a9d8f','#f4a261','#f4a261','#e63946','#e63946','#c1121f'], borderRadius:6 }] }, options:{ responsive:true, maintainAspectRatio:false, plugins:{legend:{display:false}}, scales:{ y:{ticks:{callback:v=>v+'%'},grid:{color:'#f0f0f0'}}, x:{grid:{display:false}} } } });
+new Chart(document.getElementById('satChurn'), { type:'bar', data:{ labels:['Churned Customers','Retained Customers'], datasets:[{ label:'Avg Satisfaction Score', data:[5.59,6.31], backgroundColor:[COLORS.red,COLORS.green], borderRadius:10 }] }, options:{ responsive:true, maintainAspectRatio:false, plugins:{legend:{display:false}}, scales:{ y:{min:4.5,max:7.5,grid:{color:'#f0f0f0'}}, x:{grid:{display:false}} } } });
+new Chart(document.getElementById('emiChurn'), { type:'pie', data:{ labels:['EMI Delayed - Churned (49.5%)','EMI Delayed - Retained (50.5%)','On Time - Churned (49%)','On Time - Retained (51%)'], datasets:[{ data:[49.5,50.5,49,51], backgroundColor:[COLORS.red,'rgba(230,57,70,0.3)',COLORS.green,'rgba(42,157,143,0.3)'], borderWidth:1, borderColor:'#fff' }] }, options:{ responsive:true, maintainAspectRatio:false, plugins:{legend:{position:'bottom',labels:{font:{size:10},padding:8}}} } });
+new Chart(document.getElementById('ageChurn'), { type:'bar', data:{ labels:['21–30','31–40','41–50','51–55'], datasets:[{ label:'Churn Rate (%)', data:[51.7,48.9,49.0,45.4], backgroundColor:[COLORS.red,COLORS.orange,COLORS.orange,COLORS.green], borderRadius:8 }] }, options:{ responsive:true, maintainAspectRatio:false, plugins:{legend:{display:false}}, scales:{ y:{min:40,max:56,ticks:{callback:v=>v+'%'},grid:{color:'#f0f0f0'}}, x:{grid:{display:false}} } } });
+new Chart(document.getElementById('riskChurn'), { type:'bar', data:{ labels:['Low Risk','Medium Risk','High Risk'], datasets:[{ label:'Actual Churn Rate (%)', data:[0,49.8,66.4], backgroundColor:[COLORS.green,COLORS.orange,COLORS.red], borderRadius:8 }] }, options:{ responsive:true, maintainAspectRatio:false, plugins:{legend:{display:false}}, scales:{ y:{ticks:{callback:v=>v+'%'},grid:{color:'#f0f0f0'}}, x:{grid:{display:false}} } } });
+new Chart(document.getElementById('custTypeChurn'), { type:'bar', data:{ labels:['High-Complaint','Price-Sensitive','Brand-Concern'], datasets:[{ label:'Churn Rate (%)', data:[50.0,49.4,48.2], backgroundColor:[COLORS.red,COLORS.orange,COLORS.blue], borderRadius:8 }] }, options:{ responsive:true, maintainAspectRatio:false, plugins:{legend:{display:false}}, scales:{ y:{min:40,max:54,ticks:{callback:v=>v+'%'},grid:{color:'#f0f0f0'}}, x:{grid:{display:false}} } } });
+new Chart(document.getElementById('brandChurn'), { type:'doughnut', data:{ labels:['High Perception → Churned (49.8%)','High → Retained','Medium → Churned (49.2%)','Medium → Retained','Low → Churned (48.6%)','Low → Retained'], datasets:[{ data:[49.8,50.2,49.2,50.8,48.6,51.4], backgroundColor:['#e63946','rgba(230,57,70,0.3)','#f4a261','rgba(244,162,97,0.3)','#0f4c81','rgba(15,76,129,0.3)'], borderWidth:1, borderColor:'#fff' }] }, options:{ responsive:true, maintainAspectRatio:false, cutout:'55%', plugins:{legend:{position:'bottom',labels:{font:{size:10},padding:6}}} } });
+new Chart(document.getElementById('custTypeDist'), { type:'doughnut', data:{ labels:['High-Complaint (1,697)','Price-Sensitive (1,696)','Brand-Concern (1,607)'], datasets:[{ data:[1697,1696,1607], backgroundColor:[COLORS.red,COLORS.orange,COLORS.blue], borderWidth:0, hoverOffset:10 }] }, options:{ responsive:true, maintainAspectRatio:false, cutout:'60%', plugins:{legend:{position:'bottom',labels:{padding:14,usePointStyle:true}}} } });
+
+const toggleState = { emi:null, exch:null };
+function setToggle(group, val) {
+  toggleState[group] = val;
+  document.getElementById(group+'-yes').className = 'toggle-btn'+(val==='yes'?' active-yes':'');
+  document.getElementById(group+'-no').className  = 'toggle-btn'+(val==='no' ?' active-no' :'');
+}
+
+function generateRecommendation() {
+  const custName=document.getElementById('custName').value||'Customer', custType=document.getElementById('custType').value, city=document.getElementById('city').value;
+  const age=parseInt(document.getElementById('age').value), ownership=parseInt(document.getElementById('ownership').value), complaints=parseInt(document.getElementById('complaints').value);
+  const sat=parseInt(document.getElementById('satisfaction').value), emiDelay=toggleState.emi, exchInq=toggleState.exch;
+  const brand=document.getElementById('brandPerc').value, riskManual=document.getElementById('churnRisk').value;
+  if(!custType||!city){alert('Please select at least Customer Type and City to proceed.');return;}
+  let score=0;
+  if(complaints===0)score+=5; else if(complaints===1)score+=8; else if(complaints===2)score+=38; else if(complaints===3)score+=45; else if(complaints===4)score+=58; else if(complaints===5)score+=62; else score+=68;
+  score+=Math.max(0,(9-sat)*4);
+  if(emiDelay==='yes')score+=10; else if(emiDelay==='no')score-=5;
+  if(exchInq==='yes')score+=15;
+  if(brand==='Low')score+=10; else if(brand==='Medium')score+=3; else if(brand==='High')score-=5;
+  if(age<=30)score+=8; else if(age>=50)score-=5;
+  if(['Jaipur','Hyderabad','Kolkata'].includes(city))score+=8;
+  if(['Delhi','Lucknow'].includes(city))score-=5;
+  if(custType==='High-Complaint')score+=5;
+  if(ownership<=2)score+=5;
+  score=Math.min(100,Math.max(0,score));
+  if(riskManual==='High')score=Math.max(score,65);
+  if(riskManual==='Low')score=Math.min(score,30);
+  if(riskManual==='Medium')score=Math.min(Math.max(score,31),64);
+  let riskLevel,riskEmoji;
+  if(score>=65){riskLevel='HIGH';riskEmoji='🔴';} else if(score>=35){riskLevel='MEDIUM';riskEmoji='🟡';} else{riskLevel='LOW';riskEmoji='🟢';}
+  document.getElementById('placeholder').style.display='none';
+  document.getElementById('results').classList.remove('result-hidden');
+  const header=document.getElementById('riskHeader');
+  header.style.background=riskLevel==='HIGH'?'linear-gradient(135deg,#c1121f,#e63946)':riskLevel==='MEDIUM'?'linear-gradient(135deg,#d4621a,#f4a261)':'linear-gradient(135deg,#1a7a6e,#2a9d8f)';
+  document.getElementById('riskScore').textContent=score;
+  setTimeout(()=>{document.getElementById('meterNeedle').style.left=score+'%';},50);
+  document.getElementById('riskTitle').textContent=riskLevel==='HIGH'?`${riskEmoji} High Churn Risk Detected`:riskLevel==='MEDIUM'?`${riskEmoji} Moderate Churn Risk`:`${riskEmoji} Low Churn Risk`;
+  document.getElementById('riskDesc').textContent=riskLevel==='HIGH'?`${custName} shows multiple critical churn indicators. Immediate intervention recommended.`:riskLevel==='MEDIUM'?`${custName} shows some warning signs. Proactive retention steps can prevent churn.`:`${custName} appears relatively stable. Standard loyalty maintenance recommended.`;
+  document.getElementById('riskBadge').textContent=`Risk Score: ${score}/100 · ${riskLevel} PRIORITY`;
+  const factors=buildFactors(complaints,sat,emiDelay,exchInq,brand,city,age,custType,ownership);
+  document.getElementById('factorsGrid').innerHTML=factors.map(f=>`<div class="factor-card ${f.severity}"><div class="factor-icon">${f.icon}</div><div class="factor-label">${f.label}</div><div class="factor-val" style="color:${f.color}">${f.value}</div></div>`).join('');
+  const recs=buildRecommendations(custType,complaints,sat,emiDelay,exchInq,brand,city,age,riskLevel,custName);
+  document.getElementById('recsContainer').innerHTML=recs.map((r,i)=>`<div class="rec-card priority-${i+1}"><div class="priority-badge p${i+1}">${i+1}</div><div class="rec-content"><h4>${r.title}</h4><p>${r.desc}</p><span class="rec-tag">⏱ ${r.timeline}</span><span class="rec-tag">📊 ${r.impact}</span></div></div>`).join('');
+  const reduction=riskLevel==='HIGH'?'35–45%':riskLevel==='MEDIUM'?'20–30%':'10–15%';
+  const timeline=riskLevel==='HIGH'?'2 Weeks':'4 Weeks';
+  const value=riskLevel==='HIGH'?'₹85,000+':riskLevel==='MEDIUM'?'₹55,000':'₹30,000';
+  document.getElementById('churnReduction').textContent=reduction;
+  document.getElementById('timeframe').textContent=timeline;
+  document.getElementById('savings').textContent=value;
+  document.getElementById('callScript').textContent=buildScript(custName,custType,riskLevel,complaints,emiDelay,exchInq,brand,city);
+}
+
+function buildFactors(complaints,sat,emi,exch,brand,city,age,custType,ownership){
+  const hc=['Jaipur','Hyderabad','Kolkata'];
+  return [
+    {icon:'😠',label:'Complaints Filed',value:complaints===0?'None ✓':`${complaints} Filed`,severity:complaints>=4?'critical':complaints>=2?'warning':'good',color:complaints>=4?'#e63946':complaints>=2?'#f4a261':'#2a9d8f'},
+    {icon:'⭐',label:'Satisfaction Score',value:`${sat}/9`,severity:sat<=4?'critical':sat<=6?'warning':'good',color:sat<=4?'#e63946':sat<=6?'#f4a261':'#2a9d8f'},
+    {icon:'💳',label:'EMI Status',value:emi==='yes'?'Delayed ⚠️':emi==='no'?'On Time ✓':'Unknown',severity:emi==='yes'?'warning':'good',color:emi==='yes'?'#f4a261':'#2a9d8f'},
+    {icon:'🔁',label:'Exchange Inquiry',value:exch==='yes'?'Made ⚠️':exch==='no'?'None ✓':'Unknown',severity:exch==='yes'?'critical':'good',color:exch==='yes'?'#e63946':'#2a9d8f'},
+    {icon:'👁️',label:'Brand Perception',value:brand||'Not Set',severity:brand==='Low'?'critical':brand==='Medium'?'warning':'good',color:brand==='Low'?'#e63946':brand==='Medium'?'#f4a261':'#2a9d8f'},
+    {icon:'📍',label:'City Churn Zone',value:hc.includes(city)?`${city} 🔴`:`${city} 🟢`,severity:hc.includes(city)?'warning':'good',color:hc.includes(city)?'#f4a261':'#2a9d8f'}
+  ];
+}
+
+function buildRecommendations(custType,complaints,sat,emi,exch,brand,city,age,risk,name){
+  const recs=[];
+  if(complaints>=4){recs.push({title:'🚨 Escalated Complaint Resolution Program',desc:`${name} has ${complaints} complaints — a critical churn signal. Assign a dedicated service manager, resolve all pending issues within 48 hours, and provide a written service guarantee. Offer a complimentary vehicle check-up as goodwill.`,timeline:'Immediate (Day 1–2)',impact:'Reduces churn risk by 25–35%'});}
+  else if(complaints>=2){recs.push({title:'🔧 Priority Service Support',desc:`${name} has raised ${complaints} complaints. Fast-track their next service visit, provide a free 20-point inspection, and assign a dedicated helpline number. Follow up via call within 3 days.`,timeline:'Within 1 week',impact:'Reduces churn risk by 15–20%'});}
+  if(custType==='Price-Sensitive'){recs.push({title:'💰 Exclusive Discount & Loyalty Bonus Offer',desc:`As a price-sensitive customer, ${name} responds well to financial incentives. Offer a 15–20% discount on next service visit, a ₹5,000 loyalty bonus for staying 1 more year, or a special EMI restructuring plan.`,timeline:'Within 3–5 days',impact:'Reduces churn risk by 20–28%'});}
+  else if(custType==='High-Complaint'){recs.push({title:'📋 Complaint-to-Resolution Fast Track',desc:`${name} is a high-complaint customer. Implement a dedicated complaint tracker, send weekly resolution updates, and offer free service vouchers worth ₹3,000 as compensation for inconvenience. Escalate to senior service advisor.`,timeline:'Immediate',impact:'Reduces churn risk by 22–30%'});}
+  else if(custType==='Brand-Concern'){recs.push({title:'🏆 Tata Brand Value Campaign',desc:`${name} has concerns about brand perception. Share Tata Nano's safety certifications, new feature updates, and resale value data. Invite them to a Tata Motors experience event or a free brand showcase session in ${city}.`,timeline:'Within 2 weeks',impact:'Improves brand loyalty by 18–25%'});}
+  if(exch==='yes'){recs.push({title:'🔄 Competitive Exchange Upgrade Offer',desc:`${name} has inquired about an exchange — a high-risk signal. Counter with an exclusive exchange offer: guaranteed ₹30,000+ buyback value, zero-cost transfer, and priority delivery of next vehicle. Present a side-by-side comparison showing Nano's total cost advantage.`,timeline:'Immediate (within 24 hrs)',impact:'Critical — reduces exchange churn by 40%'});}
+  if(emi==='yes'){recs.push({title:'💳 EMI Restructuring & Financial Relief Plan',desc:`${name} is experiencing EMI delays — a financial stress indicator. Offer a 3-month EMI holiday, interest waiver for one month, or flexible repayment schedule. Connect with a Tata Motors finance advisor for a customized plan.`,timeline:'Within 5 days',impact:'Reduces financial-stress churn by 18%'});}
+  if(sat<=5){recs.push({title:'⭐ Satisfaction Recovery Program',desc:`${name}'s satisfaction score is ${sat}/9 — below the retention threshold of 6.31. Conduct a personal satisfaction survey call, identify specific pain points, and create a 30-day improvement plan with check-in milestones.`,timeline:'Within 1 week',impact:'Each point improvement = 12% churn reduction'});}
+  if(brand==='Low'){recs.push({title:'🎯 Rebranding & Perception Repair Campaign',desc:`${name} has low brand perception. Send a personalized letter from a regional manager, share Tata Nano's improved reliability data, and offer a surprise free service or accessory upgrade to rebuild trust.`,timeline:'Within 2 weeks',impact:'Improves retention probability by 20%'});}
+  if(['Jaipur','Hyderabad','Kolkata'].includes(city)){recs.push({title:`📍 ${city} City Retention Campaign`,desc:`${city} has one of the highest churn rates (51–53%). Enroll ${name} in the city-specific loyalty program — exclusive regional discounts, local service center upgrades, and invitations to city-level Tata events.`,timeline:'Within 2 weeks',impact:'City campaign reduces regional churn by 12%'});}
+  if(age<=30){recs.push({title:'📱 Youth Digital Engagement Program',desc:`At age ${age}, ${name} is in the highest-churn age bracket. Engage via WhatsApp, Instagram, and app-based loyalty points. Highlight Nano's tech features, fuel efficiency, and modern accessories. Offer referral bonuses.`,timeline:'Ongoing — Start within 1 week',impact:'Youth engagement reduces churn by 15%'});}
+  if(recs.length===0){recs.push({title:'🎁 Proactive Loyalty Maintenance',desc:`${name} is currently low risk. Maintain engagement with a quarterly check-in call, birthday/anniversary offers, and early access to Tata service promotions. Prevention is cheaper than recovery.`,timeline:'Quarterly',impact:'Maintains low churn probability'});}
+  return recs.slice(0,4);
+}
+
+function buildScript(name,type,risk,complaints,emi,exch,brand,city){
+  const opening=`Hello, may I speak with ${name}?\n\n[When connected]\n\nHi ${name}, this is [Your Name] calling from Tata Motors Customer Care, ${city} region.\nI hope you're doing well! I'm reaching out because we truly value you as a Tata Nano owner and want to make sure your experience has been exceptional.`;
+  let body='';
+  if(complaints>=3){body=`\n\nI noticed you've reached out to us a few times recently, and I sincerely apologize if we haven't resolved your concerns to your satisfaction. That's exactly why I'm calling today — I'd like to personally ensure everything is sorted out right away.\n\nCould you briefly walk me through the main issue? I've flagged your account as priority and have the authority to escalate this directly.`;}
+  else if(exch==='yes'){body=`\n\nWe noticed you recently inquired about vehicle exchange options, and I'd love to walk you through what we can exclusively offer you as a valued customer. We have a special buyback program this month with exciting numbers for Nano owners like yourself.`;}
+  else if(emi==='yes'){body=`\n\nI noticed there might have been some difficulty with your recent EMI — please don't worry at all. We have a flexible restructuring option available and I'd like to make this as stress-free as possible for you.`;}
+  else{body=`\n\nAs a loyal Tata Nano customer, you're eligible for our exclusive loyalty rewards this quarter. I wanted to make sure you were aware of the special benefits available to you.`;}
+  const close=`\n\nIs there anything else about your Nano experience that we could improve? Your feedback directly shapes how we serve customers in ${city}.\n\nThank you so much for your time, ${name}. We truly appreciate your loyalty to Tata Motors. Have a wonderful day! 🙏`;
+  return opening+body+close;
+}
+</script>
+</body>
+</html>
